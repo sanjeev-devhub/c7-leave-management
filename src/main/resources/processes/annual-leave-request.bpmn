@@ -31,6 +31,54 @@
       <bpmn:outgoing>Flow_Review_To_Gateway</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:exclusiveGateway id="Gateway_Decision" name="Decision">
+      <bpmn:extensionElements>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy">// Derive mail-related runtime variables from the manager's decision.
+            // These drive which notification is sent downstream.
+            def decision = execution.getVariable("decision")
+            def employeeName = execution.getVariable("employeeName") ?: "Employee"
+            def leaveType    = execution.getVariable("leaveType") ?: "leave"
+            def comments     = execution.getVariable("managerComments") ?: ""
+
+            def mailType
+            def mailSubject
+            def mailTemplate
+            def mailToEmployee = true
+
+            switch (decision) {
+                case "APPROVED":
+                    mailType     = "APPROVAL"
+                    mailSubject  = "Your ${leaveType} request has been approved"
+                    mailTemplate = "leave-approved"
+                    break
+                case "REJECTED":
+                    mailType     = "REJECTION"
+                    mailSubject  = "Your ${leaveType} request has been rejected"
+                    mailTemplate = "leave-rejected"
+                    break
+                case "MORE_INFO_REQUIRED":
+                    mailType     = "ADDITIONAL_INFO"
+                    mailSubject  = "More information needed for your ${leaveType} request"
+                    mailTemplate = "leave-more-info"
+                    break
+                default:
+                    mailType     = "UNKNOWN"
+                    mailSubject  = "Update on your ${leaveType} request"
+                    mailTemplate = "leave-generic"
+                    mailToEmployee = false
+            }
+
+            def body = "Dear ${employeeName},\n\n${mailSubject}." +
+                       (comments?.trim() ? "\n\nManager comments: ${comments}" : "") +
+                       "\n\nRegards,\nLeave Management"
+
+            execution.setVariable("mailType", mailType)
+            execution.setVariable("mailSubject", mailSubject)
+            execution.setVariable("mailTemplate", mailTemplate)
+            execution.setVariable("mailToEmployee", mailToEmployee)
+            execution.setVariable("mailBody", body.toString())</camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_Review_To_Gateway</bpmn:incoming>
       <bpmn:outgoing>Flow_Gateway_To_LogRequest</bpmn:outgoing>
       <bpmn:outgoing>Flow_Gateway_To_Rejected</bpmn:outgoing>
