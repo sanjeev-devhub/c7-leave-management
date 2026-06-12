@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_AnnualLeave" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.47.0">
+  <bpmn:collaboration id="Collaboration_AnnualLeave">
+    <bpmn:participant id="Participant_LeaveProcess" name="Annual Leave Request Management" processRef="annual-leave-request" />
+  </bpmn:collaboration>
+  <bpmn:process id="annual-leave-request" name="Annual Leave Request" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Employee" name="Employee">
+        <bpmn:flowNodeRef>StartEvent_LeaveInitiated</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>UserTask_RequestLeave</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>UserTask_ProvideAdditionalInfo</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_LineManager" name="Line Manager">
+        <bpmn:flowNodeRef>UserTask_ReviewRequest</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Decision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ServiceTask_LogRequest</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Approved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Rejected</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_LeaveInitiated" name="Annual Leave Initiated">
+      <bpmn:outgoing>Flow_Start_To_RequestLeave</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="UserTask_RequestLeave" name="Request Annual Leave" camunda:formKey="request-annual-leave" camunda:candidateGroups="employee">
+      <bpmn:incoming>Flow_Start_To_RequestLeave</bpmn:incoming>
+      <bpmn:outgoing>Flow_RequestLeave_To_Review</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="UserTask_ReviewRequest" name="Review Request" camunda:formKey="review-request" camunda:candidateGroups="line-manager" camunda:priority="50">
+      <bpmn:incoming>Flow_RequestLeave_To_Review</bpmn:incoming>
+      <bpmn:incoming>Flow_ProvideInfo_To_Review</bpmn:incoming>
+      <bpmn:outgoing>Flow_Review_To_Gateway</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="Decision">
+      <bpmn:incoming>Flow_Review_To_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gateway_To_LogRequest</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Gateway_To_Rejected</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Gateway_To_ProvideInfo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="UserTask_ProvideAdditionalInfo" name="Provide Additional Information" camunda:formKey="provide-additional-information" camunda:candidateGroups="employee">
+      <bpmn:extensionElements />
+      <bpmn:incoming>Flow_Gateway_To_ProvideInfo</bpmn:incoming>
+      <bpmn:outgoing>Flow_ProvideInfo_To_Review</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="ServiceTask_LogRequest" name="Log Request" camunda:asyncBefore="true" camunda:delegateExpression="${logRequestDelegate}">
+      <bpmn:incoming>Flow_Gateway_To_LogRequest</bpmn:incoming>
+      <bpmn:outgoing>Flow_LogRequest_To_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_Approved" name="Request Approved">
+      <bpmn:incoming>Flow_LogRequest_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Request Rejected">
+      <bpmn:incoming>Flow_Gateway_To_Rejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_RequestLeave" sourceRef="StartEvent_LeaveInitiated" targetRef="UserTask_RequestLeave" />
+    <bpmn:sequenceFlow id="Flow_RequestLeave_To_Review" sourceRef="UserTask_RequestLeave" targetRef="UserTask_ReviewRequest" />
+    <bpmn:sequenceFlow id="Flow_Review_To_Gateway" sourceRef="UserTask_ReviewRequest" targetRef="Gateway_Decision" />
+    <bpmn:sequenceFlow id="Flow_Gateway_To_LogRequest" name="APPROVED" sourceRef="Gateway_Decision" targetRef="ServiceTask_LogRequest">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${decision == "APPROVED"}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Gateway_To_Rejected" name="REJECTED" sourceRef="Gateway_Decision" targetRef="EndEvent_Rejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${decision == "REJECTED"}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Gateway_To_ProvideInfo" name="MORE_INFO_REQUIRED" sourceRef="Gateway_Decision" targetRef="UserTask_ProvideAdditionalInfo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${decision == "MORE_INFO_REQUIRED"}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ProvideInfo_To_Review" sourceRef="UserTask_ProvideAdditionalInfo" targetRef="UserTask_ReviewRequest" />
+    <bpmn:sequenceFlow id="Flow_LogRequest_To_End" sourceRef="ServiceTask_LogRequest" targetRef="EndEvent_Approved" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_AnnualLeave">
+      <bpmndi:BPMNShape id="Participant_LeaveProcess_di" bpmnElement="Participant_LeaveProcess" isHorizontal="true">
+        <dc:Bounds x="120" y="60" width="1100" height="450" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_LineManager_di" bpmnElement="Lane_LineManager" isHorizontal="true">
+        <dc:Bounds x="150" y="260" width="1070" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Employee_di" bpmnElement="Lane_Employee" isHorizontal="true">
+        <dc:Bounds x="150" y="60" width="1070" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_LeaveInitiated_di" bpmnElement="StartEvent_LeaveInitiated">
+        <dc:Bounds x="212" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="190" y="185" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_RequestLeave_di" bpmnElement="UserTask_RequestLeave">
+        <dc:Bounds x="300" y="120" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_ReviewRequest_di" bpmnElement="UserTask_ReviewRequest">
+        <dc:Bounds x="470" y="340" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <dc:Bounds x="645" y="355" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="652" y="412" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_ProvideAdditionalInfo_di" bpmnElement="UserTask_ProvideAdditionalInfo">
+        <dc:Bounds x="610" y="120" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_LogRequest_di" bpmnElement="ServiceTask_LogRequest">
+        <dc:Bounds x="800" y="340" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Approved_di" bpmnElement="EndEvent_Approved">
+        <dc:Bounds x="990" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="970" y="405" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="990" y="460" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="970" y="503" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_To_RequestLeave_di" bpmnElement="Flow_Start_To_RequestLeave">
+        <di:waypoint x="248" y="160" />
+        <di:waypoint x="300" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RequestLeave_To_Review_di" bpmnElement="Flow_RequestLeave_To_Review">
+        <di:waypoint x="360" y="200" />
+        <di:waypoint x="360" y="380" />
+        <di:waypoint x="470" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Review_To_Gateway_di" bpmnElement="Flow_Review_To_Gateway">
+        <di:waypoint x="590" y="380" />
+        <di:waypoint x="645" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gateway_To_LogRequest_di" bpmnElement="Flow_Gateway_To_LogRequest">
+        <di:waypoint x="695" y="380" />
+        <di:waypoint x="800" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="725" y="362" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gateway_To_Rejected_di" bpmnElement="Flow_Gateway_To_Rejected">
+        <di:waypoint x="670" y="405" />
+        <di:waypoint x="670" y="478" />
+        <di:waypoint x="990" y="478" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="680" y="438" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gateway_To_ProvideInfo_di" bpmnElement="Flow_Gateway_To_ProvideInfo">
+        <di:waypoint x="670" y="355" />
+        <di:waypoint x="670" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="680" y="275" width="105" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ProvideInfo_To_Review_di" bpmnElement="Flow_ProvideInfo_To_Review">
+        <di:waypoint x="680" y="200" />
+        <di:waypoint x="680" y="270" />
+        <di:waypoint x="530" y="270" />
+        <di:waypoint x="530" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LogRequest_To_End_di" bpmnElement="Flow_LogRequest_To_End">
+        <di:waypoint x="920" y="380" />
+        <di:waypoint x="990" y="380" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

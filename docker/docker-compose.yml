@@ -1,0 +1,51 @@
+# Camunda 7 (embedded) leave-management stack.
+#
+# Because the Camunda 7 engine runs INSIDE the Spring Boot app, the only
+# infrastructure dependency is the database. No Zeebe, no Elasticsearch,
+# no separate Operate/Tasklist containers — the Camunda webapp (Cockpit,
+# Tasklist, Admin) is served by the app itself under /camunda.
+#
+# Endpoints once up:
+#   App / REST API   http://localhost:8080
+#   Swagger UI       http://localhost:8080/swagger-ui.html
+#   Camunda Webapp   http://localhost:8080/camunda   (admin / admin)
+#   Postgres         localhost:5432  (camunda / camunda)
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: leave-postgres
+    environment:
+      - POSTGRES_DB=camunda
+      - POSTGRES_USER=camunda
+      - POSTGRES_PASSWORD=camunda
+    ports:
+      - "5432:5432"
+    volumes:
+      - leave-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U camunda -d camunda"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  leave-management:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: leave-management
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/camunda
+      - DB_USERNAME=camunda
+      - DB_PASSWORD=camunda
+      - CAMUNDA_ADMIN_USER=admin
+      - CAMUNDA_ADMIN_PASSWORD=admin
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  leave-pgdata:

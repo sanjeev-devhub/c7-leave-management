@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: leave-management
+  datasource:
+    url: jdbc:postgresql://localhost:5433/camunda7
+    username: postgres
+    password: 9533
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      # Camunda manages its own schema; our audit tables are created by Hibernate.
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# Camunda 7 embedded engine configuration
+camunda:
+  bpm:
+    database:
+      # Camunda creates/updates its own tables on startup
+      schema-update: true
+      type: postgres
+    admin-user:
+      # Seeds the Camunda Cockpit/Admin/Tasklist superuser (web apps at /camunda)
+      id: demo
+      password: demo
+      first-name: Admin
+    history-level: full
+    job-execution:
+      enabled: true
+    generic-properties:
+      properties:
+        # Make candidate-group authorizations behave predictably for our demo
+        authorizationEnabled: false
+        # Since Camunda 7.10, user/group/tenant ids are validated against a
+        # whitelist pattern (default "[a-zA-Z0-9]+|camunda-admin"), which rejects
+        # the hyphen in the "line-manager" candidate group. Widen the pattern to
+        # allow letters, digits, underscores, dots and hyphens. (Hyphen is placed
+        # last in the character class so it is treated as a literal, not a range.)
+        generalResourceWhitelistPattern: "[a-zA-Z0-9_.-]+"
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.example.leavemanagement: DEBUG
+    org.camunda.bpm: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] %logger{36} - %msg%n"

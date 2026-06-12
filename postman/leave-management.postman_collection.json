@@ -1,0 +1,142 @@
+{
+  "info": {
+    "name": "Leave Management API (Camunda 7)",
+    "description": "Camunda 7 embedded Annual Leave Request workflow. No authentication - the API is open.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "leave-mgmt-c7-collection"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "taskId", "value": "" },
+    { "key": "processInstanceId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Leave",
+      "item": [
+        {
+          "name": "Start Annual Leave Request",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "if (pm.response.code === 200) { pm.collectionVariables.set('processInstanceId', pm.response.json().processInstanceId); }"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/leave/start", "host": ["{{baseUrl}}"], "path": ["api","leave","start"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"EMP-001\",\n  \"employeeName\": \"John Doe\",\n  \"leaveType\": \"ANNUAL_LEAVE\",\n  \"startDate\": \"2026-06-01\",\n  \"endDate\": \"2026-06-05\",\n  \"reason\": \"Family vacation\",\n  \"daysRequested\": 5\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Search Tasks - For Line Manager",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/tasks/search", "host": ["{{baseUrl}}"], "path": ["api","tasks","search"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"state\": \"CREATED\",\n  \"candidateGroup\": \"line-manager\",\n  \"pageSize\": 20\n}" }
+          }
+        },
+        {
+          "name": "Search Tasks - For Employee",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/tasks/search", "host": ["{{baseUrl}}"], "path": ["api","tasks","search"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"state\": \"CREATED\",\n  \"candidateGroup\": \"employee\",\n  \"pageSize\": 20\n}" }
+          }
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["api","tasks","{{taskId}}"] }
+          }
+        },
+        {
+          "name": "Assign Task",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}/assign", "host": ["{{baseUrl}}"], "path": ["api","tasks","{{taskId}}","assign"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"assignee\": \"manager01\"\n}" }
+          }
+        },
+        {
+          "name": "Unassign Task",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}/unassign", "host": ["{{baseUrl}}"], "path": ["api","tasks","{{taskId}}","unassign"] }
+          }
+        },
+        {
+          "name": "Complete - APPROVED",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}/complete", "host": ["{{baseUrl}}"], "path": ["api","tasks","{{taskId}}","complete"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"variables\": {\n    \"decision\": \"APPROVED\",\n    \"managerComments\": \"Approved\"\n  }\n}" }
+          }
+        },
+        {
+          "name": "Complete - REJECTED",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}/complete", "host": ["{{baseUrl}}"], "path": ["api","tasks","{{taskId}}","complete"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"variables\": {\n    \"decision\": \"REJECTED\",\n    \"managerComments\": \"Insufficient leave balance\"\n  }\n}" }
+          }
+        },
+        {
+          "name": "Complete - MORE_INFO_REQUIRED",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}/complete", "host": ["{{baseUrl}}"], "path": ["api","tasks","{{taskId}}","complete"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"variables\": {\n    \"decision\": \"MORE_INFO_REQUIRED\",\n    \"managerComments\": \"Please attach medical certificate\"\n  }\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Variables",
+      "item": [
+        {
+          "name": "Search Variables",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/variables/search", "host": ["{{baseUrl}}"], "path": ["api","variables","search"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"processInstanceId\": \"{{processInstanceId}}\"\n}" }
+          }
+        },
+        {
+          "name": "Update Variables",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/variables", "host": ["{{baseUrl}}"], "path": ["api","variables"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"processInstanceId\": \"{{processInstanceId}}\",\n  \"variables\": {\n    \"additionalInformation\": \"Attached updated document\"\n  }\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        {
+          "name": "List Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/audit", "host": ["{{baseUrl}}"], "path": ["api","audit"] }
+          }
+        }
+      ]
+    }
+  ]
+}
